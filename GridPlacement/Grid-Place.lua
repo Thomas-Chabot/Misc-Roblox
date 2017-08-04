@@ -39,10 +39,12 @@
 						Transparency to be given to any models/parts placed.
 						Defaults to 0.5.
 			Returns: A new Grid object.
-		:place (obj : PVInstance, callback : function)
+		:place (obj : PVInstance, autoplace: boolean, callback : function)
 			Description: Begins placement of a given object onto the grid.
 			Arguments:
 				obj: Any BasePart or Model to be placed within the grid.
+				autoplace: If true, will place the model into the grid on click -
+				            if false, will instead leave this to the callback.
 				callback: A function to run. Function should take a single parameter,
 			 	            being the final position for the object.
 			Returns: Nothing. Will return through callback function.
@@ -82,7 +84,7 @@ end
 
 -- **** PUBLIC METHODS **** --
 -- Start a placement
-function Grid:place (obj, callback)
+function Grid:place (obj, auto, callback)
 	if (self.running) then
 		self._throw("Grid placement system already running");
 	end
@@ -93,6 +95,7 @@ function Grid:place (obj, callback)
 	self.running     = true;
 	self.model       = obj;
 	self.callback    = callback;
+	self.auto        = auto;
 	self:_rebuild ();
 
 	-- start running ...
@@ -138,7 +141,9 @@ function Grid:_placeholderify (m)
 		part.Anchored     = true;
 	end
 
-	recurse (m, _applyTo);
+	local _check = function(p) return p:IsA("BasePart"); end
+
+	recurse (m, _applyTo, _check);
 end
 
 -- Snap to grid
@@ -154,9 +159,11 @@ function Grid:_snap (position)
 	);
 end
 
-function Grid:_positionTo (newPosition)
-	if (not self.placeholder) then self._throw("No placeholder model!"); end
-	local m = self.placeholder;
+function Grid:_positionTo (newPosition, model)
+	if (not model and not self.placeholder) then
+		self._throw("No placeholder model!");
+	end
+	local m = model or self.placeholder;
 
 	if (m:IsA("BasePart")) then
 		m.Position = newPosition; -- benefit of moving on top
@@ -168,9 +175,21 @@ function Grid:_positionTo (newPosition)
 end
 
 -- Run callback ...
+function Grid:_place (model, position)
+	model.Parent = workspace;
+	self:_positionTo (position, model);
+end
+
 function Grid:_stop (pos)
 	local cb = self.callback;
+	local m  = self.model;
+
 	self:cancel ();
+
+	if (self.auto) then
+		self:_place (m, pos);
+	end
+
 	cb (pos);
 end
 
