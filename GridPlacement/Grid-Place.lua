@@ -93,7 +93,7 @@ function Grid:place (obj, auto, callback)
 	if (not callback) then self._throw("Unspecified Argument: Callback"); end
 
 	self.running     = true;
-	self.model       = obj;
+	self.model       = obj:Clone ();
 	self.callback    = callback;
 	self.auto        = auto;
 	self:_rebuild ();
