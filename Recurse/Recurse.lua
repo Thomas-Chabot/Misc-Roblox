@@ -1,13 +1,12 @@
 --[[
 	Runs a function on every descendant from some main parent.
-
 	Arguments:
 		main : The main parent to find descendants of (note will also run on self).
+                         Can also optionally be a table of instances, in which case all instances will be used as a base point.
 		each : A function to be called for every descendant (provided check is true).
 		check: [OPTIONAL] Determines whether or not to run the each function
 		                 on a given descendant. If this returns false, will not run
 		                 each. Defaults to always true.
-
 	Returns: Nothing
 --]]
 
@@ -16,7 +15,11 @@ return function (main, each, check)
 		check = function() return true; end
 	end
 
-	local parts = {main};
+	if (typeof (main) ~= "table") then
+		main = { main };
+	end
+
+	local parts = main;
 
 	-- check & run function ...
 	local _check = function (c)
