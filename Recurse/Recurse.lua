@@ -43,6 +43,7 @@ return function (main, each, check)
 		end
 
 		-- add all children to our list of things to check
-		_append (cur:GetChildren());
+		-- note, doing a pcall here juts in case of errors
+		pcall (function () _append (cur:GetChildren()); end)
 	end
 end
