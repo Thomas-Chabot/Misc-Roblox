@@ -310,17 +310,27 @@ end
 
 -- Initializing a single handle
 function Handles:_initButton (id, buttonDetails, parent)
-	buttonDetails.id = id;
-	buttonDetails.bgColor = self._bgColor;
-	buttonDetails.bgTrans = self._bgTrans;
-	buttonDetails.parent  = parent;
+	-- Create a new object to store the buttonDetails
+	-- So that it doesn't get reset each time
+	local newDetails = {
+		id = id,
+		bgColor = self._bgColor,
+		bgTrans = self._bgTrans,
+		parent = parent,
+		img = buttonDetails.img
+	};
+	for key,value in pairs (buttonDetails) do
+		newDetails [key] = value;
+	end
 	
-	self:_fixSize (buttonDetails);
-	self:_fixPos  (buttonDetails);
+	-- Fix the size & position to the user-specified values
+	self:_fixSize (newDetails);
+	self:_fixPos (newDetails);
 	
-	self:_log ("After fixing, size: ", buttonDetails.size, " & pos: ", buttonDetails.position);
+	self:_log ("After fixing, size: ", newDetails.size, " & pos: ", newDetails.position);
 
-	return self:_createHandle (buttonDetails);
+	-- And create the handle
+	return self:_createHandle (newDetails);
 end
 function Handles:_createHandle (details)
 	local handle = Handle.new (details);
@@ -344,6 +354,8 @@ function Handles:_fix (udim2, default, mult)
 	local fix = function(value)
 		return (value / default) * mult;
 	end
+	
+	print (udim2, default, mult)
 	
 	return UDim2.new (udim2.X.Scale, fix(udim2.X.Offset),
 		              udim2.Y.Scale, fix(udim2.Y.Offset)
