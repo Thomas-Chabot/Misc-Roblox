@@ -355,8 +355,6 @@ function Handles:_fix (udim2, default, mult)
 		return (value / default) * mult;
 	end
 	
-	print (udim2, default, mult)
-	
 	return UDim2.new (udim2.X.Scale, fix(udim2.X.Offset),
 		              udim2.Y.Scale, fix(udim2.Y.Offset)
 	);
