@@ -19,13 +19,22 @@
 		These are the various options that may be provided into the constructor.
 		  Note that some are required while others are optional; [R] indicates required.
 		
-		[R] Direction  The Direction in which sprites are animated. This currently
-		                 has support for Vertical and Horizontal; can be selected by
-		                  Animator.Directions.Horizontal or Animator.Directions.Vertical.
+		[R] Direction  The Direction to follow with the grid. Can be either Horizontal or Vertical.
+		                 If this is Horizontal, will load sprites in each row in order;
+		                 If this is Vertical, will be loaded column by column.
 		
+		[R] Grid       The Dimensions of the grid - i.e. number of rows & number of columns.
+		                 Should be a dictionary of two values:
+		                   Rows = # of rows (should be int);
+	                       Cols = # of columns (should be int)
+	
 		[O] SpriteSize The Size of each individual sprite. This defaults to the ImageRectSize
 		                 defined on the ImageObject. Should be a Vector2.
 		
+		[O] FrameOffset The Offset to apply for each frame. Will be added to the frame's default
+		                   offset; eg. If SpriteOffset is (0, 1), will turn 60 -> 61.
+	   	                   Should be Vector2.
+	
 		[O] FrameDelay The delay for each frame. Should be a number.
 		                 Defaults to 0.03.
 		
@@ -41,23 +50,25 @@
 			Animator.Directions.Vertical
 	
 	Example:
-		local SpriteAnimator = require (game.ServerScriptService.SpriteAnimator);
+		local Animator = require (game.ServerScriptService.SpriteAnimator);
 		local imgLabel = script.Parent.ImageLabel;
+		local numFrames = 12;
 		
-		local animator = SpriteAnimator.new (
-			imgLabel, -- The image object
-			17, -- Number of frames
-			{
-				Direction = SpriteAnimator.Directions.Vertical, -- Direction of sprite sheet
-				FrameDelay = 0.03, -- Delay for each frame
-				Frames = {
-					[17] = 0.5 -- Extra delay for the last frame, 17
-				}
-			}
-		);
+		local anim = Animator.new (imgLabel, numFrames, {
+			Direction = Animator.Directions.Horizontal,
+			FrameDelay = 0.05, -- .05 seconds between each frame
+			Frames = {
+				[12] = 0.5 -- Wait half a second on the final frame
+			},
+			
+			Grid = {
+				Rows = 4,
+				Cols = 3
+			} -- 3 x 4 grid - 3 columns, 4 rows
+		});
 		
 		-- Run the animation
-		animator:start ();
+		anim:start ();
 --]]
 
 local SpriteAnimator = { };
@@ -69,6 +80,7 @@ SA.Directions = {
 }
 
 -- ** Constants ** --
+local DEF_FRAME_OFFSET = Vector2.new (0, 0);
 local DEF_FRAME_DELAY = 0.03;
 
 -- ** Constructor ** --
@@ -77,11 +89,14 @@ function SA.new (mainImgLbl, numSprites, options)
 	assert (numSprites, "The number of sprites to animate through is required");
 	
 	if (not options) then options = { }; end
+	if (not options.Grid) then options.Grid = { }; end
+	
 	local sprite = setmetatable ({
 		-- Main sprite information
 		_imgLbl = mainImgLbl,
 		_numSprites = numSprites,
 		_spriteSize = options.SpriteSize or mainImgLbl.ImageRectSize,
+		_frameOffset = options.FrameOffset or DEF_FRAME_OFFSET,
 		
 		-- Frame direction
 		_spriteDirection = options.Direction,
@@ -89,6 +104,13 @@ function SA.new (mainImgLbl, numSprites, options)
 		-- Delay speeds
 		_frameDelay = options.FrameDelay or DEF_FRAME_DELAY, -- Delay for frame if not specified
 		_frames = options.Frames or { }, -- Delay for each frame, individually
+		
+		-- Grid
+		_numRows = options.Grid.Rows,
+		_numCols = options.Grid.Cols,
+		
+		_curRow = 0,
+		_curCol = 0,
 		
 		-- Internals
 		_isAnimating = false,
@@ -131,12 +153,40 @@ function SpriteAnimator:_run ()
 		local waitTime = self:_getWaitTime (frameIndex);
 		
 		imageLabel.ImageRectOffset = newOffset;
+		self:_updateGrid ();
 		
 		wait (waitTime);		
 	end
 end
 
 -- Helper methods
+-- Update the current grid row & column
+function SpriteAnimator:_updateGrid ()
+	local row = self._curRow;
+	local col = self._curCol;
+	
+	if (self._spriteDirection == SA.Directions.Vertical) then
+		self._curRow, self._curCol = self:_updateGridValues (row, col, self._numRows, self._numCols);
+	else
+		self._curCol, self._curRow = self:_updateGridValues (col, row, self._numCols, self._numRows)
+	end
+end
+
+-- Updates the grid from
+function SpriteAnimator:_updateGridValues (row, column, maxRow, maxCol)
+	row = row + 1;
+	if (row >= maxRow) then
+		row = 0;
+		column = column + 1;
+		
+		if (column >= maxCol) then
+			column = 0;
+		end
+	end
+	
+	return row, column;
+end
+
 -- Determines the new frame index
 function SpriteAnimator:_updateFrameIndex ()
 	local newIndex = (self._frameIndex + 1) % self._numSprites;
@@ -147,8 +197,10 @@ end
 
 -- Determines the offset for a given frame
 function SpriteAnimator:_getOffset (frameIndex)
-	local spriteMultiplier = self._spriteDirection * frameIndex;
-	return spriteMultiplier * self._spriteSize;
+	local spriteMultiplier = Vector2.new (self._curCol, self._curRow);
+	local framePosition = spriteMultiplier * self._spriteSize;
+	
+	return framePosition + self._frameOffset;
 end
 
 -- Determines the wait time for a given frame
