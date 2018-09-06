@@ -1,0 +1,78 @@
+local AutomaticDoor = { };
+local AD = { };
+
+-- ** Dependencies ** --
+local Defaults = require (script.Defaults);
+
+-- ** Defaults ** --
+local defaults = Defaults.new ({
+	triggerDistance = 20, -- Magnitude
+	checkInterval = 1 -- Seconds between every check for trigger
+});
+
+function AD.new (door, options)
+	options = defaults:apply (options);
+	
+	local door = setmetatable ({
+		_door = door,
+		_distance = options.triggerDistance,
+		_interval = options.checkInterval,
+		
+		_position = door:GetPrimaryPartCFrame(),
+		
+		_isOpen = false
+	}, AutomaticDoor);
+	
+	door:_init ();
+	return door;
+end
+
+-- ** Private Methods ** --
+-- Initialization
+function AutomaticDoor:_init ()
+	self:_initChecks ();
+end
+function AutomaticDoor:_initChecks ()
+	while wait (self._interval) do
+		if (self:_shouldActivate ()) then
+			self:_open ();
+		else
+			self:_close ();
+		end
+	end
+end
+
+-- Open / Close
+function AutomaticDoor:_open ()
+	if (self._isOpen) then return end
+	self._isOpen = true;
+	
+	-- Open the door
+end
+function AutomaticDoor:_close ()
+	if (not self._isOpen) then return end
+	self._isOpen = false;
+	
+	-- Close the door
+end
+
+-- Trigger check
+function AutomaticDoor:_shouldActivate ()
+	for _,player in pairs (game.Players:GetPlayers()) do
+		if (self:_withinDistance (player) and self:_playerInFront (player)) then
+			return true;
+		end
+	end
+	return false;
+end
+
+function AutomaticDoor:_withinDistance (player)
+	if (not player.Character) then return false end
+	return (player:DistanceFromCharacter (self._position) < self._distance);
+end
+function AutomaticDoor:_playerInFront (player)
+	-- Raycast
+end
+
+AutomaticDoor.__index = AutomaticDoor;
+return AD;
