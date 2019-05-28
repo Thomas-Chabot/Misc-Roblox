@@ -10,6 +10,8 @@ Css:        Allows elements to contain classes which can be added and removed, c
 
 Gui-Css:    Allows a Gui to easily change its appearance on hover & activation events.
 
+GridPlacementModule: Provides an easy interface for allowing players to place models based on a grid. This is similar to what can be found in games like Welcome to ROBLOX Building.
+
 ResizableGui: Grants players the ability to resize a GUI to a size that fits their screen, regardless of device.
 
 Read through each individual module to find further information and documentation.
